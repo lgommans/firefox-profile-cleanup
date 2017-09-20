@@ -3,7 +3,7 @@
 import sys, os
 
 if len(sys.argv) != 2 or '-h' in sys.argv or '--help' in sys.argv:
-    print("Usage: {} config-file".format(sys.argv[0]))
+    print("Usage: {} configfile".format(sys.argv[0]))
     print("Use --genconfig to show a configuration example")
     print("Note: you need the sqlite3 binary in your $PATH.")
     sys.exit(1)
@@ -16,11 +16,11 @@ if '--genconfig' in sys.argv:
 profile=abcdef01.default
 
 # Path to said profile
-# Optional: defaults to ~/.mozilla/firefox
-mozpath=/home/USERNAME/.mozilla/firefox
+# Optional. It defaults to ~/.mozilla/firefox
+#mozpath=/home/USERNAME/.mozilla/firefox
 
 # The whitelist: domains of which information should be kept (such as cookies)
-# This can be specified multiple times
+# This can be specified multiple times, as shown in the example.
 # Will include subdomains, e.g. example.com includes www.example.com
 # and students.example.com includes joe.students.example.com
 keep=example.com
@@ -137,4 +137,3 @@ for f in d:
 #
 # maybe cert_override.txt
 # and wtf is serviceworker.txt?
-
