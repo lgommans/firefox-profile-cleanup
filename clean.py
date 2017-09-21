@@ -105,6 +105,9 @@ os.system(s)
 d = os.scandir('{}/storage/default'.format(profilep))
 for f in d:
     f = f.name
+    if 'moz-extension+++' in f:
+        continue
+
     keepdir = False
     for domain in keep:
         if domain in f:
@@ -118,6 +121,9 @@ for f in d:
 d = os.scandir('{}/storage/temporary'.format(profilep))
 for f in d:
     f = f.name
+    if 'moz-extension+++' in f:
+        continue
+
     keepdir = False
     for domain in keep:
         if domain in f:
