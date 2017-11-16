@@ -2,9 +2,11 @@
 
 import sys, os
 
-if len(sys.argv) != 2 or '-h' in sys.argv or '--help' in sys.argv:
+if len(sys.argv) < 2 or '-h' in sys.argv or '--help' in sys.argv:
     print("Usage: {} configfile".format(sys.argv[0]))
     print("Use --genconfig to show a configuration example")
+    print("Use --show-deletes to show what got deleted")
+    print("Use --verbose to show commands being executed")
     print("Note: you need the sqlite3 binary in your $PATH.")
     sys.exit(1)
 
@@ -27,6 +29,20 @@ keep=example.com
 keep=wikipedia.org
 """.strip())
     sys.exit(0)
+
+showDeletes = False
+if '--show-deletes' in sys.argv:
+    showDeletes = True
+    sys.argv.remove('--show-deletes')
+
+verbose = False
+if '--verbose' in sys.argv:
+    verbose = True
+    sys.argv.remove('--verbose')
+
+if '-v' in sys.argv:
+    verbose = True
+    sys.argv.remove('-v')
 
 conffile = sys.argv[1]
 
@@ -86,9 +102,20 @@ for domain in keep:
 if len(where) > 3900:
     sys.stderr.write('Warning: you got a lot of keeps. Just know that this has not been tested.\n')
 
+if showDeletes:
+    print("Removing the following cookies:")
+    s = "echo 'SELECT baseDomain, (SELECT GROUP_CONCAT(name || \"=\" || value, \";\") FROM moz_cookies mc2 WHERE mc1.baseDomain = mc2.baseDomain) FROM moz_cookies mc1 WHERE {} GROUP BY baseDomain;' | sqlite3 {}/cookies.sqlite".format(where, profilep);
+    os.system(s)
+
+    s = "echo 'SELECT \"Total: \" || COUNT(*) || \" cookies\" FROM moz_cookies WHERE {};' | sqlite3 {}/cookies.sqlite".format(where, profilep);
+    os.system(s)
+
 s = "echo 'DELETE FROM moz_cookies WHERE {};' | sqlite3 {}/cookies.sqlite".format(where, profilep)
-print('Running: {}'.format(s))
+if verbose:
+    print('')
+    print('Running: {}'.format(s))
 os.system(s)
+print('')
 
 # Cleanup localstorage
 where = ''
@@ -97,11 +124,24 @@ for domain in keep:
     where += '{}originKey NOT LIKE "{}%"'.format(nd, domain[::-1]) # reverse domain, str[from:to:step]
     nd = ' AND '
 
+if showDeletes:
+    print("Removing the following localStorage domains:")
+    s = "echo 'SELECT distinct originKey FROM webappsstore2 WHERE {};' | sqlite3 {}/webappsstore.sqlite".format(where, profilep) + " | awk -F: '{print $1}' | rev | tr \\\\n \\ ";
+    os.system(s)
+    print('')
+
+    s = "echo 'SELECT \"Total: \" || COUNT(*) || \" items\" FROM webappsstore2 WHERE {};' | sqlite3 {}/webappsstore.sqlite".format(where, profilep);
+    os.system(s)
+
 s = "echo 'DELETE FROM webappsstore2 WHERE {};' | sqlite3 {}/webappsstore.sqlite".format(where, profilep)
-print('Running: {}'.format(s))
+if verbose:
+    print('')
+    print('Running: {}'.format(s))
 os.system(s)
+print('')
 
 # Cleanup ... other stuff? Idk even what this is, but more site-specific storage
+rmdirs = []
 d = os.scandir('{}/storage/default'.format(profilep))
 for f in d:
     f = f.name
@@ -114,10 +154,19 @@ for f in d:
             keepdir = True
             break
     if not keepdir:
+        rmdirs.append(f)
         s = 'rm -r "{}/storage/default/{}"'.format(profilep, f)
-        print('Running: {}'.format(s))
+        if verbose:
+            print('Running: {}'.format(s))
         os.system(s)
 
+if showDeletes:
+    if len(rmdirs) > 0:
+        print('Removed files from ./storage/default/: ' + ' '.join(rmdirs))
+    else:
+        print('No cache files found in ./storage/default/')
+
+rmdirs = []
 d = os.scandir('{}/storage/temporary'.format(profilep))
 for f in d:
     f = f.name
@@ -130,16 +179,25 @@ for f in d:
             keepdir = True
             break
     if not keepdir:
+        rmdirs.append(f)
         s = 'rm -r "{}/storage/temporary/{}"'.format(profilep, f)
-        print('Running: {}'.format(s))
+        if verbose:
+            print('Running: {}'.format(s))
         os.system(s)
+
+if showDeletes:
+    if len(rmdirs) > 0:
+        print('Removed files from ./storage/temporary/: ' + ' '.join(rmdirs))
+    else:
+        print('No cache files found in ./storage/temporary/')
 
 # TODO:
 # Thwart advanced profiling techniques by cleaning up:
 #  - favicons.sqlite
-#  - SiteSecurityServiceState.txt (HSTS, HPKP)
+#  - SiteSecurityServiceState.txt (HSTS, HPKP -- or should we keep these?)
 #  - kinto.sqlite
 #  - permissions.sqlite
 #
 # maybe cert_override.txt
 # and wtf is serviceworker.txt?
+
