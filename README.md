@@ -23,3 +23,11 @@ and other such files.
 
 `./clean.py config.txt`
 
+---
+
+## New: nocomplete.py
+
+Beta stage. Attempts to make Firefox no longer autocomplete things, since it
+seems to have moved from choosing the best option to always offering the one
+you want the *least*.
+
