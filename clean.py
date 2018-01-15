@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+# Exit statuses:
+#   0 = exited correctly
+#   1 = program did not execute because of input, e.g. you used arguments incorrectly, or you used --help
+#   2 = arguments or config syntactically correct, but still an error caught before execution, e.g. could not find the path specified
+
 import sys, os
 
 if len(sys.argv) < 2 or '-h' in sys.argv or '--help' in sys.argv:
@@ -15,7 +20,8 @@ if '--genconfig' in sys.argv:
 # A comment is a line starting with a #
 
 # The profile name, identical to the folder name
-profile=abcdef01.default
+# Example: profile=abcdef01.default
+profile=xxxxxx
 
 # Path to said profile
 # Optional. It defaults to ~/.mozilla/firefox
@@ -66,7 +72,7 @@ for line in configlines:
 
     if '=' not in line:
         sys.stderr.write('Error in config file on line {} (=-sign not found)\n'.format(lineN))
-        sys.exit(2)
+        sys.exit(1)
 
     key, val = line.split('=', 1)
 
@@ -80,9 +86,9 @@ for line in configlines:
         sys.stderr.write('Error: unrecognized config key "{}" on line {}\n'.format(key, lineN))
         sys.exit(1)
 
-if profile is None:
+if profile is None or profile == 'xxxxxx':
     print('Error: no profile specified in the config file.')
-    sys.exit(2)
+    sys.exit(1)
 
 if len(keep) == 0:
     print('Error: no keep= lines found in config file. Please use --genconfig to generate an example config.')
@@ -91,6 +97,10 @@ if len(keep) == 0:
     sys.exit(2)
 
 profilep = '{}/{}'.format(mozpath, profile) # profile-path
+
+if not os.path.isdir(profilep):
+    print('Profile "{}" not found (path does not exist).'.format(profilep))
+    sys.exit(2)
 
 # Cleanup cookies
 where = ''
